@@ -1,0 +1,118 @@
+=begin
+  This is Network-LSA Packet
+
+LSAHeader
+---------------
+LSANetwork
+---------------
+    ArrayFu		:ospf_lsa_netrouter	# Network-LSA stub
+   ------------
+   LSANetRouter
+   ------------
+ 	 Octets		:ospf_lsa_netmask	# Network Mask
+  	 Octets		:ospf_lsa_attrouter	# Attached Router
+
+=end
+
+class LSANetRouter < Struct.new(
+		:ospf_lsa_netmask, :ospf_lsa_attrouter)
+	include StructFu
+	def initialize(args={})
+		super(
+			Octets.new.read(args['ospf_lsa_netmask'] || "\x00"*4),
+			Octets.new.read(args['ospf_lsa_attrouter'] || "\x00"*4))
+	end
+
+	def to_s
+		self.to_a.map {|x| x.to_s}.join
+	end
+
+	def read str
+		force_binary str
+		return self if str.nil?
+		self['ospf_lsa_netmask'].read str[0,4]
+		self['ospf_lsa_netmask'].read str[4,4]
+		self
+	end
+
+	def ospf_lsa_netmask; 		self['ospf_lsa_netmask'].to_i; end
+	def ospf_lsa_netmask_str;	self['ospf_lsa_netmask'].to_s; end
+	def ospf_lsa_netmask_quad;	self['ospf_lsa_netmask'].to_x; end
+	def ospf_lsa_netmask=(v)
+		case v
+		when Octets
+			self['ospf_lsa_netmask'] = v
+		else
+				typecast v
+		end
+	end
+
+	def ospf_lsa_netmask_quad=(v); 	self['ospf_lsa_netmask'].read_quad v; end
+
+
+	def ospf_lsa_attrouter; 	self['ospf_lsa_attrouter'].to_i; end
+	def ospf_lsa_attrouter_str;	self['ospf_lsa_attrouter'].to_s; end
+	def ospf_lsa_attrouter_quad;	self['ospf_lsa_attrouter'].to_x; end
+	def ospf_lsa_attrouter=(v)
+		case v
+		when Octets
+			self['ospf_lsa_attrouter'] = v
+		else
+				typecast v
+		end
+	end
+
+	def ospf_lsa_attrouter_quad=(v); 	self['ospf_lsa_attrouter'].read_quad v; end
+end
+
+class LSANetwork < Struct.new(:ospf_lsa_netrouter)
+	include StructFu
+	def initialize(args={})
+		super(ArrayFu.new.read(args['ospf_lsa_netrouter'] || nil))
+	end
+
+	def to_s
+		self.to_a.map {|x| x.to_s}.join
+	end
+
+	def read str
+		force_binary str
+		return self if str.nil?
+		num = str.size
+		if num % 8 == 0
+			nets = []
+			(num / 8).times do |t|
+				nets << LSANetRouter.new.read(str[8*t, 8*(t+1)])
+			end
+			self['ospf_lsa_netrouter'].read nets
+		end
+		self
+	end
+
+	def ospf_inject_lsa_netrouter nets
+		case nets
+		when Array
+			self['ospf_lsa_netrouter'].read nets
+		when LSANetRouter
+			self['ospf_lsa_netrouter'].push nets
+		else
+			self['ospf_lsa_netrouter'].push(LSANetRouter.new.read(nets))
+		end
+	end
+
+	def ospf_calc_lsa_netrouter
+		nets = self['ospf_lsa_netrouter']
+		if nets.size == 1 and nets.first.nil?
+			return 0
+		else
+			return nets.size
+		end
+	end
+
+	def ospf_index_lsa_netrouter i
+		self['ospf_lsa_netrouter'][i]
+	end
+		
+end
+
+	
