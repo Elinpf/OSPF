@@ -2,6 +2,8 @@
 OSPF 协议栈
 Linux x86_64
 
+使用时候注意metasploit 位置，并进行修改。
+
  License
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
